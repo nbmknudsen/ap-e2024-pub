@@ -71,7 +71,7 @@ tests =
         eval envEmpty (Let "x" (CstInt 3) (Add (Var "x") (Var "x"))) @?= Right (ValInt 6),
 
       testCase "Evaluate Let statement with Var" $
-      eval envEmpty (Let "x" (CstInt 3) (Add (Var "x") (Var "y"))) @?= Left "Unknown variable: y"
+      eval envEmpty (Let "x" (CstInt 3) (Add (Var "x") (Var "y"))) @?= Left "Unknown variable: y",
 
     ]
     

@@ -31,3 +31,11 @@ parseAPL :: FilePath -> String -> Either String Exp
 parseAPL fname s = case parse (space *> pExp <* eof) fname s of
   Left err -> Left $ errorBundlePretty err
   Right x -> Right x
+
+
+-- digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+-- int = digit {digit};
+-- Exp ::= int "+" int;
+
+lInteger :: Parser Integer
+lInteger = read <$> some (satisfy isDigit)

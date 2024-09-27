@@ -24,7 +24,11 @@ import Text.Megaparsec.Char (space)
 type Parser = Parsec Void String
 
 pExp :: Parser Exp
-pExp = undefined
+pExp = choice
+          [ CstInt <$> lInteger,
+            Var <$> lVName
+          ]
+
 
 -- Do not change this definition.
 parseAPL :: FilePath -> String -> Either String Exp
@@ -33,9 +37,20 @@ parseAPL fname s = case parse (space *> pExp <* eof) fname s of
   Right x -> Right x
 
 
+
+
+lexeme :: Parser a -> Parser a
+lexeme p = p <* space
+
 -- digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 -- int = digit {digit};
 -- Exp ::= int "+" int;
-
 lInteger :: Parser Integer
-lInteger = read <$> some (satisfy isDigit)
+lInteger = lexeme $ read <$> some (satisfy isDigit) <* notFollowedBy (satisfy isAlpha)
+
+-- alphabetic = ? any alphabetic character ?;
+-- alphanumeric = ? any alphanumeric character ?;
+-- var = alphabetic {alphanumeric};
+lVName :: Parser VName
+lVName = lexeme $ read <$> ((satisfy isAlpha) <* some (satisfy isAlphaNum))
+-- <* some (satisfy isAlphaNum)

@@ -31,9 +31,18 @@ tests :: TestTree
 tests =
   testGroup
     "Parsing"
-    [ parserTest lInteger "123"
-      --   ,
-      -- --
-      -- testCase "Parse string to int with space" $
-      --   parseTest lInteger "123 " @?= 123
+    [ testGroup
+        "Constants"
+        [ parserTest "123" $ CstInt 123,
+          parserTest " 123" $ CstInt 123,
+          parserTest "123 " $ CstInt 123,
+          parserTestFail "123xyz"
+        ],
+      testGroup
+        "Vars"
+        [ parserTest "x123" $ Var "x123",
+          parserTest " x123" $ Var "x123",
+          parserTest "x123 " $ Var "x123",
+          parserTestFail "123"
+        ]
     ]

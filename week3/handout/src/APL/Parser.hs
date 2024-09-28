@@ -23,12 +23,79 @@ import Text.Megaparsec.Char (space)
 -- Do not change this definition.
 type Parser = Parsec Void String
 
-pExp :: Parser Exp
-pExp = choice
-          [ CstInt <$> lInteger,
+
+lString :: String -> Parser ()
+lString s = lexeme $ void $ chunk s
+
+-- Atom ::= var
+--        | int
+--        | bool
+--        | "(" Exp ")"
+pAtom :: Parser Exp
+pAtom = choice
+          [ Var <$> lVName,
+            CstInt <$> lInteger,
             CstBool <$> pBool,
-            Var <$> lVName
+            lString "(" *> pExp <* lString ")"
           ]
+
+-- LExp ::= "if" Exp "then" Exp "else" Exp
+pLExp :: Parser Exp
+pLExp =
+  choice
+    [ If
+        <$> (lKeyword "if" *> pExp0)
+        <*> (lKeyword "then" *> pExp0)
+        <*> (lKeyword "else" *> pExp0),
+      pAtom
+    ]
+
+
+-- Exp1' ::=            (* empty *)
+--         | "*" Atom Exp1'
+--         | "/" Atom Exp1'
+
+-- Exp1 ::= Atom Exp1'
+pExp1 :: Parser Exp
+pExp1 = pLExp >>= chain
+  where
+    chain x =
+      choice
+        [ do
+            lString "*"
+            y <- pLExp
+            chain $ Mul x y,
+          do
+            lString "/"
+            y <- pLExp
+            chain $ Div x y,
+          pure x
+        ]
+
+-- Exp0' ::=            (* empty *)
+--         | "+" Exp1 Exp0'
+--         | "-" Exp1 Exp0'
+
+-- Exp0 ::= Exp1 Exp0'
+pExp0 :: Parser Exp
+pExp0 = pExp1 >>= chain
+  where
+    chain x =
+      choice
+        [ do
+            lString "+"
+            y <- pExp1
+            chain $ Add x y,
+          do
+            lString "-"
+            y <- pExp1
+            chain $ Sub x y,
+          pure x
+        ]
+
+-- Exp  ::= Exp0
+pExp :: Parser Exp
+pExp = pExp0
 
 
 -- Do not change this definition.
@@ -38,6 +105,8 @@ parseAPL fname s = case parse (space *> pExp <* eof) fname s of
   Right x -> Right x
 
 
+keywords :: [String]
+keywords = ["if", "then", "else", "true", "false", "let", "in", "try", "catch", "print", "put", "get"]
 
 
 lexeme :: Parser a -> Parser a
@@ -53,10 +122,13 @@ lInteger = lexeme $ read <$> some (satisfy isDigit) <* notFollowedBy (satisfy is
 -- alphanumeric = ? any alphanumeric character ?;
 -- var = alphabetic {alphanumeric};
 lVName :: Parser VName
-lVName = lexeme $ do
+lVName = lexeme $ try $ do
   c <- satisfy isAlpha
   cs <- many $ satisfy isAlphaNum
-  pure $ c:cs
+  let v = c:cs
+  if v `elem` keywords
+    then fail "Unexpected keyword"
+    else pure v
 
 lKeyword :: String -> Parser ()
 lKeyword s = lexeme $ void $ try $ chunk s <* notFollowedBy (satisfy isAlphaNum)
@@ -68,3 +140,4 @@ pBool =
     [ const True <$> lKeyword "true",
       const False <$> lKeyword "false"
     ]
+

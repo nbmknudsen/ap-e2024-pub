@@ -43,7 +43,8 @@ tests =
         [ parserTest "x123" $ Var "x123",
           parserTest " x123" $ Var "x123",
           parserTest "x123 " $ Var "x123",
-          parserTestFail "1x123"
+          parserTestFail "1x123",
+          parserTestFail "if"
         ],
       testGroup
         "Booleans"
@@ -51,6 +52,25 @@ tests =
           parserTest "false" $ CstBool False,
           parserTestFail "true e",
           parserTest "truee" $ Var "truee"
+        ],
+      testGroup
+        "Operator left asssociative"
+        [ parserTest "x+y+z"   $ Add (Add (Var "x") (Var "y")) (Var "z"),
+          parserTest "x+y-z"   $ Sub (Add (Var "x") (Var "y")) (Var "z"),
+          parserTest "x+y*z"   $ Add (Var "x") (Mul (Var "y") (Var "z")),
+          parserTest "x*y*z"   $ Mul (Mul (Var "x") (Var "y")) (Var "z"),
+          parserTest "x/y/z"   $ Div (Div (Var "x") (Var "y")) (Var "z"),
+          parserTest "x+(y*z)" $ Add (Var "x") (Mul (Var "y") (Var "z"))
+        ],
+      testGroup
+        "Conditional expressions"
+        [ parserTest "if x then y else z" $ If (Var "x") (Var "y") (Var "z"),
+          parserTest "if x then y else if x then y else z" $
+            If (Var "x") (Var "y") $
+              If (Var "x") (Var "y") (Var "z"),
+          parserTest "if x then (if x then y else z) else z" $
+            If (Var "x") (If (Var "x") (Var "y") (Var "z")) (Var "z"),
+          parserTest "1 + if x then y else z" $
+            Add (CstInt 1) (If (Var "x") (Var "y") (Var "z"))
         ]
-       
     ]

@@ -26,6 +26,7 @@ type Parser = Parsec Void String
 pExp :: Parser Exp
 pExp = choice
           [ CstInt <$> lInteger,
+            CstBool <$> pBool,
             Var <$> lVName
           ]
 
@@ -52,5 +53,18 @@ lInteger = lexeme $ read <$> some (satisfy isDigit) <* notFollowedBy (satisfy is
 -- alphanumeric = ? any alphanumeric character ?;
 -- var = alphabetic {alphanumeric};
 lVName :: Parser VName
-lVName = lexeme $ read <$> ((satisfy isAlpha) <* some (satisfy isAlphaNum))
--- <* some (satisfy isAlphaNum)
+lVName = lexeme $ do
+  c <- satisfy isAlpha
+  cs <- many $ satisfy isAlphaNum
+  pure $ c:cs
+
+lKeyword :: String -> Parser ()
+lKeyword s = lexeme $ void $ try $ chunk s <* notFollowedBy (satisfy isAlphaNum)
+
+-- bool ::= "true" | "false";
+pBool :: Parser Bool
+pBool = 
+  choice 
+    [ const True <$> lKeyword "true",
+      const False <$> lKeyword "false"
+    ]

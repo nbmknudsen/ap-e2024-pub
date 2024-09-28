@@ -43,6 +43,14 @@ tests =
         [ parserTest "x123" $ Var "x123",
           parserTest " x123" $ Var "x123",
           parserTest "x123 " $ Var "x123",
-          parserTestFail "123"
+          parserTestFail "1x123"
+        ],
+      testGroup
+        "Booleans"
+        [ parserTest "true" $ CstBool True,
+          parserTest "false" $ CstBool False,
+          parserTestFail "true e",
+          parserTest "truee" $ Var "truee"
         ]
+       
     ]

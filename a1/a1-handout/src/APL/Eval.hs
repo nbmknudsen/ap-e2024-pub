@@ -79,17 +79,25 @@ eval env (Let var e1 e2) =
   case eval env e1 of
     Left err -> Left err
     Right v -> eval (envExtend var v env) e2
-eval env (Lambda var e1) = Right (ValFun env var e1) 
+    
+eval env (Lambda var e1) = Right (ValFun env var e1)
+
 eval env (Apply e1 e2) = 
   case eval env e1 of
     Left err -> Left err
-    Right (ValFun nenv n exp) -> Right n
-
-    Right (ValFun fEnv param body) ->  -- Ensure f evaluates to a ValFun
-      case eval env arg of
-        Left err -> Left err  -- Handle errors from argument evaluation
-        Right argValue ->  -- arg evaluated successfully
-          let extendedEnv = envExtend param argValue fEnv  -- Extend function's env
-          in eval extendedEnv body  -- Evaluate the body in the new environment
+    Right (ValFun env2 name e3) -> 
+      case eval env e2 of
+        Left err -> Left err
+        Right value ->
+          let extendedEnv = envExtend name value env2
+          in eval extendedEnv e3
     Right _ -> Left "Function application requires a function value."
+
+eval env (TryCatch e1 e2) = 
+  case eval env e1 of
+    Right res -> Right res
+    Left _ -> case eval env e2 of
+      Left err -> Left err
+      Right v -> Right v
+
 -- TODO: Add cases after extending Exp.

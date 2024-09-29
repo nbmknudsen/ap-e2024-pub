@@ -90,7 +90,25 @@ tests =
               (Add (CstInt 2) (CstInt 3))
               (Let "x" (CstBool True) (Var "x"))
           )
-          @?= Right (ValBool True)
-          --
-          -- TODO - add more
+          @?= Right (ValBool True),
+      --
+      testCase "Lambda" $
+        eval [] (Let "x" (CstInt 2)(Lambda "y" (Add (Var "x") (Var "y"))))
+          @?= Right (ValFun [("x",ValInt 2)] "y" (Add (Var "x") (Var "y"))),
+      --
+      testCase "Apply" $
+        eval [] (Apply (Let "x" (CstInt 2) (Lambda "y" (Add (Var "x") (Var "y")))) (CstInt 3))
+          @?= Right (ValInt 5),
+      --
+      testCase "TryCatch (first expression succes)" $
+        eval [] (TryCatch (CstInt 0) (CstInt 1))
+          @?= Right (ValInt 0),
+      --    
+      testCase "TryCatch (first expression error)" $
+         eval [] (TryCatch (Var "missing") (CstInt 1))
+          @?= Right (ValInt 1),
+      --    
+      testCase "TryCatch (first and second expression error)" $
+         eval [] (TryCatch (Var "missing") (Var "missing too"))
+          @?= Left "Unknown variable: missing too"
     ]

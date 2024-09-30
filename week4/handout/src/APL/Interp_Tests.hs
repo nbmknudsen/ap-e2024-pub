@@ -29,7 +29,9 @@ pureTests :: TestTree
 pureTests =
   testGroup
     "Pure interpreter"
-    []
+    [ testCase "Pure CstInt" $
+        eval' (CstInt 7)
+          @?= ValInt 7]
 
 ioTests :: TestTree
 ioTests =

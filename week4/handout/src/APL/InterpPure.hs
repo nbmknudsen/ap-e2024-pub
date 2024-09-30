@@ -2,9 +2,15 @@ module APL.InterpPure (runEval) where
 
 import APL.Monad
 
+-- type EvalM a = Free EvalOp a
+-- r = Env
+-- k = Env -> a
 runEval :: EvalM a -> a
-runEval = runEval' envEmpty
+runEval = runEval' envEmpty stateInitial
   where
-    runEval' :: Env -> EvalM a -> a
-    runEval' _ (Pure x) = error "TODO"
-    runEval' r (Free (ReadOp k)) = error "TODO"
+    runEval' :: Env -> State -> EvalM a -> a
+    runEval' _ _ (Pure x) = x
+    runEval' r s (Free (ReadOp k)) = runEval' r s $ k r
+    runEval' r s (Free (StateGetOp k)) = runEval' r s $ k s
+    runEval' r _ (Free (StatePutOp s' m)) = runEval' r s' m
+      

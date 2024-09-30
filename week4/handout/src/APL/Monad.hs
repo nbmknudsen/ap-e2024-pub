@@ -55,23 +55,49 @@ data Free e a
   = Pure a
   | Free (e (Free e a))
 
+-- fmap :: (a -> b) -> Free e a -> Free e b
 instance (Functor e) => Functor (Free e) where
-  fmap f (Pure x) = error "TODO"
-  fmap f (Free g) = error "TODO"
+  fmap f (Pure x) = Pure (f x)
+  -- g :: e (Free e a)
+  -- f :: a -> b
+  fmap f (Free g) = Free $ fmap (fmap f) g
+  -- (fmap f) = f0 a -> f0 b
+  -- fmap (fmap f) g = e (Free e b)
+  -- Free $ fmap (fmap f) g = Free e (Free e b), where b = (Free e b)
 
+-- pure :: a -> f a
+-- (<*>) :: f (a -> b) -> f a -> f b
 instance (Functor e) => Applicative (Free e) where
   pure = Pure
   (<*>) = ap
 
+-- (>>=) :: Free e a -> (a -> Free e b) -> Free e b
 instance (Functor e) => Monad (Free e) where
-  Pure x >>= f = error "TODO"
-  Free g >>= f = error "TODO"
+  Pure x >>= f = f x
+  -- f :: a -> Free e b
+  -- g :: e (Free e a)
+  -- Free g :: e (Free e a)
+  -- h :: Free e a -> Free e b
+  Free g >>= f = Free $ h <$> g
+    where
+      h x = x >>= f
+  -- x = Free e a
+  -- h <$> g = e (Free e a)
+  -- Free $ h <$> g Free e (Free e a), where b = (Free e a)
 
 data EvalOp a
   = ReadOp (Env -> a)
+  | StateGetOp (State -> a)
+  | StatePutOp State a
 
+-- fmap :: (a -> b) -> EvalOp a -> EvalOp b
 instance Functor EvalOp where
-  fmap f (ReadOp k) = error "TODO"
+  -- f :: a -> b
+  -- k :: Env -> a
+  fmap f (ReadOp k) = ReadOp $ fmap f k
+  -- fmap f k = f . k
+  fmap f (StateGetOp k) = StateGetOp $ fmap f k
+  fmap f (StatePutOp s a) = StatePutOp s $ f a
 
 type EvalM a = Free EvalOp a
 
@@ -83,16 +109,18 @@ modifyEffects _ (Pure x) = Pure x
 modifyEffects g (Free e) = error "TODO"
 
 localEnv :: (Env -> Env) -> EvalM a -> EvalM a
-localEnv = error "TODO"
+localEnv f m = error "TODO"
 
 getState :: EvalM State
-getState = error "TODO"
+getState = Free $ StateGetOp $ \state -> pure state
 
 putState :: State -> EvalM ()
-putState = error "TODO"
+putState s = Free $ StatePutOp s $ pure ()
 
 modifyState :: (State -> State) -> EvalM ()
-modifyState = error "TODO"
+modifyState f = do
+  s <- getState
+  putState $ f s
 
 evalPrint :: String -> EvalM ()
 evalPrint = error "TODO"

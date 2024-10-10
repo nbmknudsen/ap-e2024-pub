@@ -1,0 +1,10 @@
+Test suite a5-test: RUNNING...
+APL properties
+  parsePrinted: FAIL
+    *** Failed! Falsified (after 2 tests):
+    Let "" (CstInt 0) (CstInt 0)
+    Use --quickcheck-replay="(SMGen 6244440241342892073 4009546086601291633,1)" to reproduce.
+
+1 out of 1 tests failed (0.00s)
+Test suite a5-test: FAIL
+Test suite logged to: /Users/naomiknudsen/Desktop/ap-e2024-pub/a5/a5-handout/dist-newstyle/build/aarch64-osx/ghc-9.6.6/a5-1.0.0.0/t/a5-test/test/a5-1.0.0.0-a5-test.log

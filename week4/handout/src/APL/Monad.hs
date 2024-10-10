@@ -89,6 +89,8 @@ data EvalOp a
   = ReadOp (Env -> a)
   | StateGetOp (State -> a)
   | StatePutOp State a
+  | PrintOp String a
+  | ErrorOp Error
 
 -- fmap :: (a -> b) -> EvalOp a -> EvalOp b
 instance Functor EvalOp where
@@ -98,6 +100,9 @@ instance Functor EvalOp where
   -- fmap f k = f . k
   fmap f (StateGetOp k) = StateGetOp $ fmap f k
   fmap f (StatePutOp s a) = StatePutOp s $ f a
+  fmap f (PrintOp s a) = PrintOp s $ f a
+  fmap f (ErrorOp e) = ErrorOp e
+  
 
 type EvalM a = Free EvalOp a
 
@@ -106,10 +111,13 @@ askEnv = Free $ ReadOp $ \env -> pure env
 
 modifyEffects :: (Functor e, Functor h) => (e (Free e a) -> h (Free e a)) -> Free e a -> Free h a
 modifyEffects _ (Pure x) = Pure x
-modifyEffects g (Free e) = error "TODO"
+modifyEffects g (Free e) = Free $ modifyEffects g <$> g e
 
 localEnv :: (Env -> Env) -> EvalM a -> EvalM a
-localEnv f m = error "TODO"
+localEnv f = modifyEffects g
+  where
+    g (ReadOp k) = ReadOp $ k . f
+    g op = op
 
 getState :: EvalM State
 getState = Free $ StateGetOp $ \state -> pure state
@@ -123,10 +131,10 @@ modifyState f = do
   putState $ f s
 
 evalPrint :: String -> EvalM ()
-evalPrint = error "TODO"
+evalPrint p = Free $ PrintOp p $ pure ()
 
 failure :: String -> EvalM a
-failure = error "TODO"
+failure = Free . ErrorOp
 
 catch :: EvalM a -> EvalM a -> EvalM a
 catch = error "To be completed in assignment 4."

@@ -6,7 +6,8 @@ where
 import APL.AST (Exp (..), VName, subExp, printExp)
 import APL.Error (isVariableError, isDomainError, isTypeError)
 import APL.Check (checkExp)
-import APL.Parser (parseAPL)
+import APL.Parser (parseAPL, keywords)
+import APL.Eval (runEval, eval)
 import Test.QuickCheck
   ( Property
   , Gen
@@ -19,9 +20,6 @@ import Test.QuickCheck
   , frequency
   , elements
   , choose
-  -- , quickCheck
-  -- , withMaxSuccess
-  , (===)
   , collect
   )
 
@@ -67,9 +65,8 @@ genExp size vars =
     , (2, Eql <$> genExp halfSize vars <*> genExp halfSize vars)
     , (1, If <$> genExp thirdSize vars <*> genExp thirdSize vars <*> genExp thirdSize vars)
     , (2, Var <$> randomVarName)
-    , (1, Var <$> arbitrary)
-    , (20, Let <$> arbitrary <*> genExp halfSize vars <*> genExp halfSize vars)
-    , (40, Lambda <$> arbitrary <*> genExp (size - 1) vars)
+    , (20, Let <$> randomVname <*> genExp halfSize vars <*> genExp halfSize vars)
+    , (40, Lambda <$> randomVname <*> genExp (size - 1) vars)
     , (1, Apply <$> genExp halfSize vars <*> genExp halfSize vars) 
     , (30, TryCatch <$> genExp halfSize vars <*> genExp halfSize vars)
     ]
@@ -78,7 +75,20 @@ genExp size vars =
     thirdSize = size `div` 3
     randomVarName = do
       len <- choose (2, 4) :: Gen Int
-      mapM (\_ -> elements ['a'..'z']) [1..len]
+      varName <- mapM (\_ -> elements ['a'..'z']) [1..len]
+      if varName `elem` keywords
+        then randomVarName
+        else return varName
+    randomVname = do
+      len <- choose (1, 10) :: Gen Int
+      -- First character must be an alphabetic letter (uppercase or lowercase)
+      firstChar <- elements (['a'..'z'] ++ ['A'..'Z'])
+      -- Remaining characters can be either letters (lowercase/uppercase) or digits
+      restChars <- mapM (\_ -> elements (['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'])) [1..(len - 1)]
+      let varName = firstChar : restChars
+      if varName `elem` keywords
+        then randomVname
+        else return varName
 
 expCoverage :: Exp -> Property        
 expCoverage e = checkCoverage
@@ -91,48 +101,30 @@ expCoverage e = checkCoverage
   . cover 50 (or [2 <= n && n <= 4 | Var v <- subExp e, let n = length v]) "non-trivial variable"
   $ ()
 
--- Define a property to check that parsing the printed expression returns the original expression
--- parsePrinted :: Exp -> Property
--- parsePrinted e = collect e $ -- You can use collect to get additional information about your expressions
---   printParseCheck e
-
-
--- Define a property to check that parsing the printed expression returns the original expression
--- parsePrinted :: Exp -> Property
--- parsePrinted e1 = 
---   let printed = printExp e1
---       parsed = parseAPL "<generated>" printed  -- Use a dummy filename or identifier
---   in case parsed of
---        Left _ -> property False  -- If parsing fails, property fails
---        Right e1' -> property (e1 === e1')  -- Check if original expression equals parsed expression
 
 parsePrinted :: Exp -> Property
-parsePrinted e = collect e $ -- You can use collect to get additional information about your expressions
+parsePrinted e = collect e $
   printParseCheck e
 
 printParseCheck :: Exp -> Bool
 printParseCheck e1 =
   case parseAPL "" (printExp e1) of
-    Left _ -> False  -- Parsing failed, return False
+    Left _ -> False 
     Right parsedExp -> e1 == parsedExp
 
 
--- printParseCheck :: Exp -> Property
--- printParseCheck e1 =
---   let printed = printExp e1  -- Get the printed representation
---       parsed = parseAPL "" printed  -- Parse the printed representation
---   in case parsed of
---        Left _ -> property False  -- If parsing fails, the property fails
---        Right parsedExp -> collect printed $ e1 === parsedExp  -- Compare original expression with parsed expression
+onlyCheckedErrors :: Exp -> Property
+onlyCheckedErrors e =
+  case runEval (eval e) of
+    Left err ->
+      property (err `elem` checkExp e)
+    Right _ ->
+      property True
 
-
-
-onlyCheckedErrors :: Exp -> Bool
-onlyCheckedErrors _ = undefined
 
 properties :: [(String, Property)]
 properties =
-  [ --("expCoverage", property expCoverage)
-  -- , ("onlyCheckedErrors", property onlyCheckedErrors)
-  ("parsePrinted", property parsePrinted)
+  [("expCoverage", property expCoverage)
+  , ("onlyCheckedErrors", property onlyCheckedErrors)
+  , ("parsePrinted", property parsePrinted)
   ]

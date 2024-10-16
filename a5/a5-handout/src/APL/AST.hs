@@ -4,7 +4,10 @@ module APL.AST
   , printExp
   , subExp
   )
+
 where
+
+import Data.Char (isAlpha, isAlphaNum, isDigit)
 
 type VName = String
 
@@ -51,16 +54,13 @@ printExp (If x y z) =
 printExp (Var v) = v
 printExp (Let v e1 e2) =
   parens $
-    "let " ++ v ++ " = " ++ printExp e1 ++ " in " ++ printExp e2
+     "let " ++ v ++ " = " ++ printExp e1 ++ " in " ++ printExp e2
 printExp (Lambda v body) =
   parens $ "\\" ++ v ++ " -> " ++ printExp body
-  -- if not (null v)
-  --   then parens $ "\\" ++ v ++ " -> " ++ printExp body 
-  --   else 
 printExp (Apply x y) =
-  printExp x ++ " " ++ printExp y
+  parens $ printExp x ++ " " ++ printExp y
 printExp (TryCatch x y) =
-  "try " ++ printExp x ++ " catch " ++ printExp y
+  parens $ "try " ++ printExp x ++ " catch " ++ printExp y
 
 subExp :: Exp -> [Exp]
 subExp e = e : case e of

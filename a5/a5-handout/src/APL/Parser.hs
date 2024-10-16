@@ -1,4 +1,4 @@
-module APL.Parser (parseAPL) where
+module APL.Parser (parseAPL, keywords) where
 
 import APL.AST (Exp (..), VName)
 import Control.Monad (void)
@@ -16,8 +16,7 @@ import Text.Megaparsec
     satisfy,
     some,
     try,
-    (<|>),
-    option
+    (<|>)
   )
 import Text.Megaparsec.Char (space, string, char)
 
@@ -40,31 +39,14 @@ keywords =
   ]
 
 lVName :: Parser VName
--- lVName = lexeme $ try $ do
---   c <- many $ satisfy isAlpha
---   cs <- many $ satisfy isAlphaNum
---   if not (null c)
---     let v = c : cs
---       if v `elem` keywords
---         then fail "Unexpected keyword"  
---           else pure v
---   else 
---     pure ""
 lVName = lexeme $ try $ do
-  c <- option "" (some $ satisfy isAlpha)  
-  cs <- many $ satisfy isAlphaNum          
-  let v = c ++ cs                           
-  if null v                                
-    then pure ""         
-    else if v `elem` keywords                
-      then fail "Unexpected keyword"  
-      else pure v  
+    c <- satisfy isAlpha
+    cs <- many $ satisfy isAlphaNum
+    let v = c : cs
+    if v `elem` keywords
+      then fail "Unexpected keyword"
+      else pure v
 
-
--- 
--- lInteger :: Parser Integer
--- lInteger =
-  --lexeme $ read <$> some (satisfy isDigit) <* notFollowedBy (satisfy isAlphaNum)
 lInteger :: Parser Integer
 lInteger = lexeme $
   (do
